@@ -15,6 +15,7 @@ public class Odometer : MonoBehaviour
     [SerializeField] TextMeshProUGUI OdometerCounter;
     [SerializeField] SoundsPlayer soundsPlayer;
     [SerializeField] AudioSource musicPlayer;
+    [SerializeField] RectTransform disconnectNotification;
 
     [Header("Stream")]
     [SerializeField] VLCMinimalPlayback streamPlayer;
@@ -129,12 +130,14 @@ public class Odometer : MonoBehaviour
     {
         Debug.Log("Disconnected from server");
         statusImage.color = Color.red;
+        disconnectNotification.DOAnchorPosY(50, 0.5f);
     }
 
     private void OnConnected(System.EventArgs e)
     {
         Debug.Log("Connected to server");
         statusImage.color = Color.green;
+        disconnectNotification.DOAnchorPosY(-50, 0.5f);
     }
 
     public void StartStopStream()
