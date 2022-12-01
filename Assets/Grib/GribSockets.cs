@@ -130,4 +130,5 @@ public class OdometerMessage
     public string operation;
     public float value;
     public float odometer;
+    public bool status;
 }

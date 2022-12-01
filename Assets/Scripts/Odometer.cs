@@ -16,6 +16,7 @@ public class Odometer : MonoBehaviour
     [SerializeField] SoundsPlayer soundsPlayer;
     [SerializeField] AudioSource musicPlayer;
     [SerializeField] RectTransform disconnectNotification;
+    [SerializeField] Toggle randomStatusToggle;
 
     [Header("Stream")]
     [SerializeField] VLCMinimalPlayback streamPlayer;
@@ -37,6 +38,13 @@ public class Odometer : MonoBehaviour
     {
         LoadSettings();
     }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+            StartCoroutine(OdometerAnimation("00000000653123"));
+    }
+
     List<char> digits = new List<char>() { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
     IEnumerator OdometerAnimation(string text)
     {
@@ -48,6 +56,14 @@ public class Odometer : MonoBehaviour
             {
                 if (currentText[i] == text[i])
                     continue;
+                if (text[i] == '.')
+                {
+                    StringBuilder sbd = new StringBuilder(currentText);
+                    sbd[i] = '.';
+                    currentText = sbd.ToString();
+                    continue;
+                }
+
                 int digit = digits.FindIndex((a)=> { return a == currentText[i]; });
                 if (++digit == 10)
                     digit = 0;
@@ -76,10 +92,6 @@ public class Odometer : MonoBehaviour
             musicPlayer.Stop();
 
         var address = ReadConfig();
-        //string ip = PlayerPrefs.GetString("settings/serverip", "185.246.65.199");
-        //ipField.text = ip;
-        //string port = PlayerPrefs.GetString("settings/serverport", "9090/ws");
-        //portField.text = port;
         Connect(address);
 
 
@@ -96,8 +108,9 @@ public class Odometer : MonoBehaviour
     void Connect(string address)
     {
         socket = new GribSockets(address, OnConnected, OnDisconnected);
-        socket.Subscribe("odometer_val", (msg) => { StartCoroutine(OdometerAnimation(msg.value.ToString("000000000000.0"))); });
-        socket.Subscribe("currentOdometer", (msg) => { StartCoroutine(OdometerAnimation(msg.odometer.ToString("000000000000.0"))); });
+        socket.Subscribe("odometer_val", (msg) => { StartCoroutine(OdometerAnimation(msg.value.ToString("00000000000.00"))); });
+        socket.Subscribe("currentOdometer", (msg) => { StartCoroutine(OdometerAnimation(msg.odometer.ToString("00000000000.00"))); });
+        socket.Subscribe("randomStatus", (msg) => { randomStatusToggle.isOn = msg.status; });
     }
 
     string ReadConfig()
@@ -138,6 +151,12 @@ public class Odometer : MonoBehaviour
         Debug.Log("Connected to server");
         statusImage.color = Color.green;
         disconnectNotification.DOAnchorPosY(-50, 0.5f);
+    }
+
+    public void RequestCheckbox()
+    {
+        socket.SendMessage("getRandomStatus");
+        SoundsPlayer.PlaySound(SoundsPlayer.SoundType.Click);
     }
 
     public void StartStopStream()
@@ -221,10 +240,16 @@ public class Odometer : MonoBehaviour
     public void ManualRequestOdometer()
     {
         socket.SendMessage("getCurrentOdometer");
+        SoundsPlayer.PlaySound(SoundsPlayer.SoundType.Click);
     }
 
     public void ToggleCheckbox()
     {
         SoundsPlayer.PlaySound(SoundsPlayer.SoundType.Click);
+    }
+
+    private void OnDisable()
+    {
+        socket.Disconnect();
     }
 }
